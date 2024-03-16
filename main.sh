@@ -31,9 +31,6 @@ do
 
 		blocks=()
 
-		# we have the blocks so we can move them to the new site
-		# change the name to block--project_slug
-		# this has to know if we are using osom or juniper theme
 		cd "$entry/web/app/themes/$theme/blocks"
 		for block in `ls -d */`
 		do
