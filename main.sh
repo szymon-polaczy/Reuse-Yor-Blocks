@@ -1,4 +1,4 @@
-:'gh api \
+z='gh api \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
   /orgs/osomstudio/repos --paginate > repos.json 
@@ -19,6 +19,7 @@ done
 for entry in `ls -d */`
 do
 	entry=${entry%/*}
+	small_entry=${entry,,}
 
 	if [ -d "$entry/web/app/themes/juniper-theme/blocks" ] || [ -d "$entry/web/app/themes/osom-theme/blocks" ]; then
 		theme=""
@@ -28,37 +29,58 @@ do
 			theme="osom-theme"
 		fi
 
-		echo $theme
+		blocks=()
 
 		# we have the blocks so we can move them to the new site
 		# change the name to block--project_slug
 		# this has to know if we are using osom or juniper theme
-
 		cd "$entry/web/app/themes/$theme/blocks"
 		for block in `ls -d */`
 		do
 			block=${block%/*}
-			cp -r "$block" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$entry"
+			blocks+=($block)
 
-			# so we have the block folder but we need the timber view file if it exists - we also have to sed
-			# the name in the functions.php, js, css, and timber if needed so that we can use the block
+			cp -r "$block" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry"
+
+			# copy the twig file if it exists
+			if [ -f "../views/blocks/$block.twig" ]; then
+				echo "copying $block.twig"
+				cp "../views/blocks/$block.twig" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/views/blocks/$block--$small_entry.twig"
+			fi
+
+
+			# has_block
+			sed -Ei "s|acf/$block|acf/$block--$small_entry|g" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry/functions.php"
+
+			# context
+			sed -Ei "s|timber/acf-gutenberg-blocks-data/$block|timber/acf-gutenberg-blocks-data/$block--$small_entry|g" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry/functions.php"
+
+			#enqueue style & script
+			sed -Ei "s|dist/blocks/$block|dist/blocks/$block--$small_entry|g" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry/functions.php"
+
+			# we also have to sed
+			# the name in the js, css, and if needed so that we can use the block
 			# project by project
+
+			# how do we work with CSS and JS files? in some projects we compile file by file but in others we have one fle
+			
+			#what do we also do about some "typography" "mixins" "variables" etc
 		done
 
-		cd "../acf-fields"
-		for acf in `ls -d */`
+		cd "../acf-json"
+		for acf in `ls`
 		do
-			echo $acf
-			sed -i "s/\"value\":\"acf\/$block_name\"/\"value\":\"acf\/$block_name--$entry\"/g" $acf
-			cp "$acf" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/acf-fields/$acf"
+			acf=${acf%/*}
+			for block in "${blocks[@]}"
+			do
+				sed -Ei "s|\"acf\\\/$block\"|\"acf\\\/$block--$small_entry\"|" $acf
+			done
+			cp "$acf" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/acf-json/$acf"
 		done
 		
-		# we don't have the blocks so we can remove the project
-		#rm -rf $entry
+		rm -rf $entry
 	else
 		echo "$entry does not have blocks"
-		# we don't have the blocks so we can remove the project
-		#rm -rf $entry
+		rm -rf $entry
 	fi
 done
-
