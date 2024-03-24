@@ -31,6 +31,9 @@ do
 
 		blocks=()
 
+		#TODO: take out the target path to a variable and update it to the new path
+		#TODO: create a list of blocks that were imported so that we can fix them manually if we want to and they won't get overriden or do some kind of versioning system
+
 		cd "$entry/web/app/themes/$theme/blocks"
 		for block in `ls -d */`
 		do
@@ -39,6 +42,7 @@ do
 
 			cp -r "$block" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry"
 
+			#TODO: it might be better to check if this or the above doesn't exists and if that happens skip the block and tell it was skipped in a separate path
 			# copy the twig file if it exists
 			if [ -f "../views/blocks/$block.twig" ]; then
 				echo "copying $block.twig"
@@ -47,6 +51,8 @@ do
 
 
 			# has_block
+			#FUTURE INFO: we probably should check if the file has any require or include statements and if it does we should get them and update them
+			# maybe there exists a way where we could require those files those file and merge them with the functions.php file so that we don't have multiple files
 			sed -Ei "s|acf/$block|acf/$block--$small_entry|g" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry/functions.php"
 
 			# context
@@ -55,13 +61,10 @@ do
 			#enqueue style & script
 			sed -Ei "s|dist/blocks/$block|dist/blocks/$block--$small_entry|g" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/blocks/$block--$small_entry/functions.php"
 
-			# we also have to sed
-			# the name in the js, css, and if needed so that we can use the block
-			# project by project
-
 			# how do we work with CSS and JS files? in some projects we compile file by file but in others we have one fle
-			
-			#what do we also do about some "typography" "mixins" "variables" etc
+			# I'm going to asume this is one of those projects where we go file by file but we need to
+			#TODO: create some kind of backup for blocks that aren't compiled properly
+			#TODO: import global scss files like typography, mixins, variables project by project and update import paths in the blocks this way we should be able to split everything
 		done
 
 		cd "../acf-json"
@@ -74,6 +77,9 @@ do
 			done
 			cp "$acf" "/home/haven/Local Sites/reuse-yor-blocks/app/public/wp-content/themes/juniper-theme/acf-json/$acf"
 		done
+
+		#TODO: using wp cli import the acf json files - from what I remember we should be able to send a wget/curl request and do it
+		#TODO: using wp cli or something like that automatically add the blocks to the page - one page one project and then one page with all of the blocks
 		
 		rm -rf $entry
 	else
